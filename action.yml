@@ -1,14 +1,15 @@
-name: 'Purdue SoCET CI'
-author: 'MArndt26'
-description: 'Continuous Integration for Open Source ASIC'
+#untested 
+name: 'RISC-V CI'
+author: 'MArndt26 modified by Alexander-Popescu'
+description: 'RISC-V toolchain and test environment for CI/CD'
 inputs:
   targets:
-    description: 'list of FuseSoC commands to run'
+    description: 'tests to execute'
     required: true
-    default: "echo 'No Test Targets Specified! && exit 1'"
+    default: "echo 'No Test Targets Specified!' && exit 1"
 outputs:
-  time: # id of output
-    description: 'The time we greeted you'
+  result:
+    description: 'Test results'
 runs:
   using: 'docker'
   image: 'Dockerfile'

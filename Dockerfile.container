@@ -1,22 +1,42 @@
-# Used to Build Image for ghrc
+# Used to Build Image for ghrc - Optimized for speed
 
 FROM ubuntu:latest
 
-RUN apt-get update
-RUN apt-get install --no-install-recommends --yes git python3 python3-pip ssh make perl g++ verilator zlib1g-dev
-RUN pip3 install fusesoc PyYAML argparse
-RUN mkdir ~/.ssh
-RUN ssh-keyscan github.com >>~/.ssh/known_hosts
+RUN apt-get update && apt-get install --no-install-recommends --yes \
+    ca-certificates curl wget git ssh make perl g++ \
+    autoconf automake autotools-dev python3 python3-pip python3-tomli \
+    libmpc-dev libmpfr-dev libgmp-dev gawk build-essential bison flex \
+    texinfo gperf libtool patchutils bc zlib1g-dev libexpat-dev \
+    ninja-build cmake libglib2.0-dev libslirp-dev device-tree-compiler && \
+    apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# clean build dependencies
-RUN apt remove python3-pip -y
-RUN apt autoremove -y
+#set up SSH
+RUN mkdir -p ~/.ssh && \
+    ssh-keyscan github.com >>~/.ssh/known_hosts
 
-COPY install_digital_libs.sh /install_digital_libs.sh
+#create directory for toolchain
+RUN mkdir -p /opt/riscv
 
-# install digital libs using ssh key
-RUN --mount=type=secret,id=SSH_PRIVATE_KEY \
-    --mount=type=secret,id=SSH_PASSPHRASE \
-    ./install_digital_libs.sh
+#build toolchain
+RUN git clone --depth 1 https://github.com/riscv/riscv-gnu-toolchain /tmp/riscv-gnu-toolchain && \
+    cd /tmp/riscv-gnu-toolchain && \
+    ./configure --prefix=/opt/riscv --enable-multilib --with-languages=c,c++ && \
+    make -j$(nproc) && \
+    cd / && \
+    rm -rf /tmp/riscv-gnu-toolchain
 
-# no entrypoint, start container in shell
+#clean up dependencies
+RUN apt-get remove -y python3-pip autoconf automake autotools-dev curl \
+    python3-tomli libmpc-dev libmpfr-dev libgmp-dev gawk build-essential \
+    bison flex texinfo gperf libtool patchutils bc libexpat-dev \
+    ninja-build cmake libglib2.0-dev libslirp-dev && \
+    apt-get autoremove --purge -y && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+#set up environment
+ENV PATH="/opt/riscv/bin:${PATH}"
+ENV RISCV="/opt/riscv"
+ENV RISCV_PREFIX="riscv64-unknown-elf-"
+
+RUN riscv64-unknown-elf-gcc --version

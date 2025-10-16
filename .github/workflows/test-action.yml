@@ -1,0 +1,12 @@
+name: Test RISC-V Action
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Test action
+        uses: ./
+        with:
+          commands: "riscv64-unknown-elf-gcc --version"
