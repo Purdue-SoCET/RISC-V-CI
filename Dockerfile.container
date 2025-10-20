@@ -25,6 +25,20 @@ RUN git clone --depth 1 https://github.com/riscv/riscv-gnu-toolchain /tmp/riscv-
     cd / && \
     rm -rf /tmp/riscv-gnu-toolchain
 
+ENV PATH="/opt/riscv/bin:${PATH}"
+ENV RISCV="/opt/riscv"
+ENV RISCV_PREFIX="riscv64-unknown-elf-"
+
+#build riscv-tests
+RUN git clone --recurse-submodules --depth 1 https://github.com/riscv/riscv-tests /tmp/riscv-tests && \
+    cd /tmp/riscv-tests && \
+    autoconf && \
+    ./configure --prefix=/opt/riscv/target && \
+    make isa -j$(nproc) && \
+    make install && \
+    cd / && \
+    rm -rf /tmp/riscv-tests
+
 #clean up dependencies
 RUN apt-get remove -y python3-pip autoconf automake autotools-dev curl \
     python3-tomli libmpc-dev libmpfr-dev libgmp-dev gawk build-essential \
@@ -34,9 +48,5 @@ RUN apt-get remove -y python3-pip autoconf automake autotools-dev curl \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-#set up environment
-ENV PATH="/opt/riscv/bin:${PATH}"
-ENV RISCV="/opt/riscv"
-ENV RISCV_PREFIX="riscv64-unknown-elf-"
-
 RUN riscv64-unknown-elf-gcc --version
+RUN ls -la /opt/riscv/target/share/riscv-tests/isa/ 
