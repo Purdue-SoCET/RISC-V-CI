@@ -1,30 +1,32 @@
-# Used to Build Image for ghrc - Optimized for speed
+FROM ubuntu:latest AS builder
 
-FROM ubuntu:latest
-
-RUN apt-get update && apt-get install --no-install-recommends --yes \
-    ca-certificates curl wget git ssh make perl g++ \
-    autoconf automake autotools-dev python3 python3-pip python3-tomli \
-    libmpc-dev libmpfr-dev libgmp-dev gawk build-essential bison flex \
-    texinfo gperf libtool patchutils bc zlib1g-dev libexpat-dev \
-    ninja-build cmake libglib2.0-dev libslirp-dev device-tree-compiler && \
-    apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    git curl wget openssh-client \
+    autoconf automake libtool \
+    bison flex texinfo \
+    gawk perl python3 python3-pip \
+    libgmp-dev libmpfr-dev libmpc-dev \
+    zlib1g-dev libexpat1-dev \
+    linux-headers-generic && \
+    rm -rf /var/lib/apt/lists/*
 
 #set up SSH
 RUN mkdir -p ~/.ssh && \
     ssh-keyscan github.com >>~/.ssh/known_hosts
 
-#create directory for toolchain
+#directory for toolchain
 RUN mkdir -p /opt/riscv
 
 #build toolchain
 RUN git clone --depth 1 https://github.com/riscv/riscv-gnu-toolchain /tmp/riscv-gnu-toolchain && \
     cd /tmp/riscv-gnu-toolchain && \
-    ./configure --prefix=/opt/riscv --enable-multilib --with-languages=c,c++ && \
+    ./configure --prefix=/opt/riscv --with-arch=rv64gc --with-abi=lp64d --with-languages=c,c++ && \
     make -j$(nproc) && \
     cd / && \
     rm -rf /tmp/riscv-gnu-toolchain
 
+#environment variables for builder stage
 ENV PATH="/opt/riscv/bin:${PATH}"
 ENV RISCV="/opt/riscv"
 ENV RISCV_PREFIX="riscv64-unknown-elf-"
@@ -39,14 +41,17 @@ RUN git clone --recurse-submodules --depth 1 https://github.com/riscv/riscv-test
     cd / && \
     rm -rf /tmp/riscv-tests
 
-#clean up dependencies
-RUN apt-get remove -y python3-pip autoconf automake autotools-dev curl \
-    python3-tomli libmpc-dev libmpfr-dev libgmp-dev gawk build-essential \
-    bison flex texinfo gperf libtool patchutils bc libexpat-dev \
-    ninja-build cmake libglib2.0-dev libslirp-dev && \
-    apt-get autoremove --purge -y && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+RUN find /opt/riscv -type f -executable -exec strip --strip-unneeded {} \; 2>/dev/null || true
+
+FROM frolvlad/alpine-glibc:latest
+#really small base image
+
+RUN apk add --no-cache ca-certificates
+COPY --from=builder /opt/riscv /opt/riscv
+
+ENV PATH="/opt/riscv/bin:${PATH}"
+ENV RISCV="/opt/riscv"  
+ENV RISCV_PREFIX="riscv64-unknown-elf-"
 
 RUN riscv64-unknown-elf-gcc --version
-RUN ls -la /opt/riscv/target/share/riscv-tests/isa/ 
+RUN ls -la /opt/riscv/target/share/riscv-tests/isa/
