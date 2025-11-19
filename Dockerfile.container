@@ -15,28 +15,31 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN mkdir -p ~/.ssh && \
     ssh-keyscan github.com >>~/.ssh/known_hosts
 
+
+#environment variables for builder stage
+ENV PATH="/opt/riscv/bin:${PATH}"
+ENV RISCV="/opt/riscv"
+ENV RISCV_PREFIX="riscv32-unknown-elf-"
+
 #directory for toolchain
 RUN mkdir -p /opt/riscv
 
 #build toolchain
 RUN git clone --depth 1 https://github.com/riscv/riscv-gnu-toolchain /tmp/riscv-gnu-toolchain && \
     cd /tmp/riscv-gnu-toolchain && \
-    ./configure --prefix=/opt/riscv --with-arch=rv64gc --with-abi=lp64d --with-languages=c,c++ && \
+    ./configure --prefix=/opt/riscv --enable-multilib --with-languages=c,c++ && \
     make -j$(nproc) && \
     cd / && \
     rm -rf /tmp/riscv-gnu-toolchain
 
-#environment variables for builder stage
-ENV PATH="/opt/riscv/bin:${PATH}"
-ENV RISCV="/opt/riscv"
-ENV RISCV_PREFIX="riscv64-unknown-elf-"
 
-#build riscv-tests
-RUN git clone --recurse-submodules --depth 1 https://github.com/riscv/riscv-tests /tmp/riscv-tests && \
+#build custom tests fork 
+RUN export RISCV_PREFIX="riscv64-unknown-elf-" && \
+    git clone --recurse-submodules -b rvb https://github.com/Purdue-SoCET/riscv-tests /tmp/riscv-tests && \
     cd /tmp/riscv-tests && \
     autoconf && \
-    ./configure --prefix=/opt/riscv/target && \
-    make isa -j$(nproc) && \
+    ./configure --with-xlen=32 --prefix=$RISCV/target && \
+    make && \
     make install && \
     cd / && \
     rm -rf /tmp/riscv-tests
@@ -50,8 +53,11 @@ RUN apk add --no-cache ca-certificates
 COPY --from=builder /opt/riscv /opt/riscv
 
 ENV PATH="/opt/riscv/bin:${PATH}"
-ENV RISCV="/opt/riscv"  
+ENV RISCV="/opt/riscv" 
 ENV RISCV_PREFIX="riscv64-unknown-elf-"
 
+#verify toolchain and tests are working
 RUN riscv64-unknown-elf-gcc --version
 RUN ls -la /opt/riscv/target/share/riscv-tests/isa/
+RUN echo "verifying custom riscv-tests" && \
+    find /opt/riscv/target/share/riscv-tests/isa/ -name "*.dump" | head -5
