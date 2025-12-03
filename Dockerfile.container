@@ -1,4 +1,4 @@
-FROM ubuntu:latest AS builder
+FROM ghcr.io/purdue-socet/socet-ci:ci-container-updates AS builder
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     git curl wget openssh-client \
@@ -16,7 +16,7 @@ RUN mkdir -p ~/.ssh && \
 
 ENV PATH="/opt/riscv/bin:${PATH}"
 ENV RISCV="/opt/riscv"
-ENV RISCV_PREFIX="riscv32-unknown-elf-"
+ENV RISCV_PREFIX="riscv64-unknown-elf-"
 
 
 RUN mkdir -p /opt/riscv
@@ -30,11 +30,11 @@ RUN git clone --depth 1 https://github.com/riscv/riscv-gnu-toolchain /tmp/riscv-
     rm -rf /tmp/riscv-gnu-toolchain
 
 #build custom tests fork 
-RUN export RISCV_PREFIX="riscv32-unknown-elf-" && \
+RUN export RISCV_PREFIX="riscv64-unknown-elf-" && \
     git clone --recurse-submodules -b rvb https://github.com/Purdue-SoCET/riscv-tests /tmp/riscv-tests && \
     cd /tmp/riscv-tests && \
     autoconf && \
-    ./configure --with-xlen=32 --prefix=$RISCV/target && \
+    ./configure --with-xlen=64 --prefix=$RISCV/target && \
     make && \
     make install && \
     cd / && \
@@ -50,28 +50,16 @@ RUN apk add --no-cache ca-certificates python3 py3-pip git make bash cmake g++ b
 RUN git config --global credential.helper ''
 ENV GIT_TERMINAL_PROMPT=0
 
-
-#Fusesoc / verilator for riscvbusiness tests
-RUN cd /tmp && \
-    wget -q https://github.com/verilator/verilator/archive/v5.020.tar.gz && \
-    tar -xzf v5.020.tar.gz && \
-    cd verilator-5.020 && \
-    autoconf && ./configure && make -j$(nproc) && make install && \
-    cd / && rm -rf /tmp/verilator-* /tmp/v5.020.tar.gz
-
-
-RUN pip3 install --no-cache-dir fusesoc==2.0 edalize==0.4.1 pyyaml pycrc --break-system-packages
-
 COPY --from=builder /opt/riscv /opt/riscv
 
 
 ENV PATH="/opt/riscv/bin:${PATH}"
 ENV RISCV="/opt/riscv" 
-ENV RISCV_PREFIX="riscv32-unknown-elf-"
+ENV RISCV_PREFIX="riscv64-unknown-elf-"
 
 
 #verify toolchain and tests are working
-RUN riscv32-unknown-elf-gcc --version
+RUN riscv64-unknown-elf-gcc --version
 RUN ls -la /opt/riscv/target/share/riscv-tests/isa/
 RUN echo "verifying custom riscv-tests" && \
     find /opt/riscv/target/share/riscv-tests/isa/ -name "*.dump" | head -5
