@@ -13,4 +13,17 @@ export PATH="/opt/riscv/bin:${PATH}"
 export RISCV="/opt/riscv"
 export RISCV_PREFIX="riscv64-unknown-elf-"
 
-exec "$@"
+echo "Starting Tests..."
+
+while IFS='' read -r target
+do
+  echo "Running target: $target"
+  if $target; then
+    echo "Target complete: $target"
+  else
+    echo "Target failed: $target"
+    exit 1
+  fi
+done <<<"$INPUT_TARGETS"
+
+echo "...Tests Complete"
