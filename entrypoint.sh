@@ -2,8 +2,6 @@
 
 set -e
 
-./install_digital_libs.sh
-
 echo "SoCET RISC-V CI container"
 
 if ! command -v riscv64-unknown-elf-gcc &> /dev/null; then
