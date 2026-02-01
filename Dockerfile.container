@@ -45,16 +45,6 @@ FROM --platform=linux/amd64 frolvlad/alpine-glibc:latest
 
 RUN apk add --no-cache ca-certificates python3 py3-pip git make bash cmake g++ build-base perl autoconf gperf flex flex-dev bison wget help2man gmp mpfr mpc openssh-client zlib-dev
 
-#verilator in the alpine package repo doesnt have the right extensions so we have to build
-RUN git clone --depth 1 --branch v5.024 https://github.com/verilator/verilator.git /tmp/verilator && \
-    cd /tmp/verilator && \
-    autoconf && \
-    ./configure --prefix=/usr && \
-    make -j$(nproc) && \
-    make install && \
-    cd / && \
-    rm -rf /tmp/verilator
-
 RUN pip3 install --break-system-packages fusesoc
 RUN git config --global credential.helper ''
 ENV GIT_TERMINAL_PROMPT=0
