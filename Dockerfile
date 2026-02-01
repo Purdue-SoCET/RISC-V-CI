@@ -1,6 +1,6 @@
 # Used for GitHub Action
 
-FROM ghcr.io/purdue-socet/RISC_V_CI:main
+FROM ghcr.io/purdue-socet/risc-v-ci:main
 
 COPY entrypoint.sh /entrypoint.sh
 
