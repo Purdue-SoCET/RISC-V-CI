@@ -11,10 +11,6 @@ if [ -f $PHRASE_FILE ]; then
     SSH_PASSPHRASE=$(cat $PHRASE_FILE)
 fi
 
-
-echo "passphrase: $SSH_PASSPHRASE"
-echo "private key: $SSH_PRIVATE_KEY"
-
 eval $(ssh-agent -s)
 
 echo 'echo $SSH_PASSPHRASE' > ~/.ssh_askpass && chmod +x ~/.ssh_askpass
