@@ -1,4 +1,4 @@
-FROM ghcr.io/purdue-socet/socet-ci:ci-container-updates AS builder
+FROM ghcr.io/purdue-socet/socet-ci:main AS builder
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     git curl wget openssh-client \
