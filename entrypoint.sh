@@ -13,9 +13,6 @@ export PATH="/opt/riscv/bin:${PATH}"
 export RISCV="/opt/riscv"
 export RISCV_PREFIX="riscv64-unknown-elf-"
 
-mkdir -p ~/.ssh
-ssh-keyscan github.com >> ~/.ssh/known_hosts
-
 echo "Starting Tests..."
 
 while IFS='' read -r target
