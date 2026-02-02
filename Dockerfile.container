@@ -24,59 +24,50 @@ RUN chmod +x /install_digital_libs.sh
 RUN --mount=type=secret,id=SSH_PRIVATE_KEY \
         /install_digital_libs.sh
 
-RUN pwd
+ENV PATH="/opt/riscv/bin:${PATH}"
+ENV RISCV="/opt/riscv"
+ENV RISCV_PREFIX="riscv64-unknown-elf-"
 
-RUN ls -al
+RUN git clone --depth 1 https://github.com/riscv-collab/riscv-gnu-toolchain /tmp/riscv-gnu-toolchain && \
+    cd /tmp/riscv-gnu-toolchain && \
+    ./configure --prefix=/opt/riscv --with-arch=rv64imafdc_zicsr_zifencei_zba_zbb_zbs_zalrsc --with-abi=lp64d && \
+    make -j$(nproc) && \
+    cd / && \
+    rm -rf /tmp/riscv-gnu-toolchain
 
-RUN cat fusesoc.conf
+#build custom tests fork 
+#pretty sure theres a bug in riscv-tests, D extension is included only in -mabi not -march
+RUN git clone --recurse-submodules -b rvb https://github.com/Purdue-SoCET/riscv-tests /tmp/riscv-tests && \
+    cd /tmp/riscv-tests && \
+    sed -i 's/imc_zicsr/imafdc_zicsr/g' benchmarks/Makefile && \
+    autoconf && \
+    ./configure --with-xlen=64 --prefix=$RISCV/target && \
+    make && \
+    make install && \
+    cd / && \
+    rm -rf /tmp/riscv-tests
 
-RUN ls fusesoc_libraries
+RUN find /opt/riscv -type f -executable -exec strip --strip-unneeded {} \; 2>/dev/null || true
 
+FROM --platform=linux/amd64 frolvlad/alpine-glibc:latest
+#really small base image
 
-# ENV PATH="/opt/riscv/bin:${PATH}"
-# ENV RISCV="/opt/riscv"
-# ENV RISCV_PREFIX="riscv64-unknown-elf-"
+RUN apk add --no-cache ca-certificates python3 py3-pip git make bash cmake g++ build-base perl autoconf gperf flex flex-dev bison wget help2man gmp mpfr mpc openssh-client zlib-dev
 
-# RUN git clone --depth 1 https://github.com/riscv-collab/riscv-gnu-toolchain /tmp/riscv-gnu-toolchain && \
-#     cd /tmp/riscv-gnu-toolchain && \
-#     ./configure --prefix=/opt/riscv --with-arch=rv64imafdc_zicsr_zifencei_zba_zbb_zbs_zalrsc --with-abi=lp64d && \
-#     make -j$(nproc) && \
-#     cd / && \
-#     rm -rf /tmp/riscv-gnu-toolchain
+RUN pip3 install --break-system-packages fusesoc
+RUN git config --global credential.helper ''
+ENV GIT_TERMINAL_PROMPT=0
 
-# #build custom tests fork 
-# #pretty sure theres a bug in riscv-tests, D extension is included only in -mabi not -march
-# RUN git clone --recurse-submodules -b rvb https://github.com/Purdue-SoCET/riscv-tests /tmp/riscv-tests && \
-#     cd /tmp/riscv-tests && \
-#     sed -i 's/imc_zicsr/imafdc_zicsr/g' benchmarks/Makefile && \
-#     autoconf && \
-#     ./configure --with-xlen=64 --prefix=$RISCV/target && \
-#     make && \
-#     make install && \
-#     cd / && \
-#     rm -rf /tmp/riscv-tests
+COPY --from=builder /opt/riscv /opt/riscv
+COPY --from=builder /work/fusesoc.conf /work/fusesoc.conf
+COPY --from=builder /work/fusesoc_libraries /work/fusesoc_libraries
 
-# RUN find /opt/riscv -type f -executable -exec strip --strip-unneeded {} \; 2>/dev/null || true
+ENV PATH="/opt/riscv/bin:${PATH}"
+ENV RISCV="/opt/riscv" 
+ENV RISCV_PREFIX="riscv64-unknown-elf-"
 
-# FROM --platform=linux/amd64 frolvlad/alpine-glibc:latest
-# #really small base image
-
-# RUN apk add --no-cache ca-certificates python3 py3-pip git make bash cmake g++ build-base perl autoconf gperf flex flex-dev bison wget help2man gmp mpfr mpc openssh-client zlib-dev
-
-# RUN pip3 install --break-system-packages fusesoc
-# RUN git config --global credential.helper ''
-# ENV GIT_TERMINAL_PROMPT=0
-
-# COPY --from=builder /opt/riscv /opt/riscv
-# COPY --from=builder fusesoc.conf fusesoc.conf
-# COPY --from=builder fusesoc_libraries fusesoc_libraries
-
-# ENV PATH="/opt/riscv/bin:${PATH}"
-# ENV RISCV="/opt/riscv" 
-# ENV RISCV_PREFIX="riscv64-unknown-elf-"
-
-# #verify toolchain and tests are working
-# RUN riscv64-unknown-elf-gcc --version
-# RUN ls -la /opt/riscv/target/share/riscv-tests/isa/
-# RUN echo "verifying custom riscv-tests" && \
-#     find /opt/riscv/target/share/riscv-tests/isa/ -name "*.dump" | head -5
+#verify toolchain and tests are working
+RUN riscv64-unknown-elf-gcc --version
+RUN ls -la /opt/riscv/target/share/riscv-tests/isa/
+RUN echo "verifying custom riscv-tests" && \
+    find /opt/riscv/target/share/riscv-tests/isa/ -name "*.dump" | head -5
