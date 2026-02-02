@@ -29,7 +29,7 @@ do
   echo "Running target: $target"
   # for run_tests.py runner, this will find failing outputs
   if $target | tee >(grep --color "FAILED" > output.txt); then
-    if grep --color "FAILED" output.txt;
+    if grep --color "FAILED" output.txt; then
       echo "Target failed: $target"
       exit 1
     fi
