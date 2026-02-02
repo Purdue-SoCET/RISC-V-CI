@@ -27,7 +27,12 @@ echo "Starting Tests..."
 while IFS='' read -r target
 do
   echo "Running target: $target"
-  if $target; then
+  # for run_tests.py runner, this will find failing outputs
+  if $target | tee >(grep --color "FAILED" > output.txt); then
+    if grep --color "FAILED" output.txt;
+      echo "Target failed: $target"
+      exit 1
+
     echo "Target complete: $target"
   else
     echo "Target failed: $target"
