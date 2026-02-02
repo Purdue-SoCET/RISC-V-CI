@@ -23,54 +23,48 @@ RUN chmod +x /install_digital_libs.sh
 RUN --mount=type=secret,id=SSH_PRIVATE_KEY \
         /install_digital_libs.sh
 
-RUN ls -al
-RUN pwd
+ENV PATH="/opt/riscv/bin:${PATH}"
+ENV RISCV="/opt/riscv"
+ENV RISCV_PREFIX="riscv64-unknown-elf-"
 
-# ENV PATH="/opt/riscv/bin:${PATH}"
-# ENV RISCV="/opt/riscv"
-# ENV RISCV_PREFIX="riscv64-unknown-elf-"
+RUN git clone --depth 1 https://github.com/riscv-collab/riscv-gnu-toolchain /tmp/riscv-gnu-toolchain && \
+    cd /tmp/riscv-gnu-toolchain && \
+    ./configure --prefix=/opt/riscv --with-arch=rv64imafdc_zicsr_zifencei_zba_zbb_zbs_zalrsc --with-abi=lp64d && \
+    make -j$(nproc) && \
+    cd / && \
+    rm -rf /tmp/riscv-gnu-toolchain
 
-# RUN git clone --depth 1 https://github.com/riscv-collab/riscv-gnu-toolchain /tmp/riscv-gnu-toolchain && \
-#     cd /tmp/riscv-gnu-toolchain && \
-#     ./configure --prefix=/opt/riscv --with-arch=rv64imafdc_zicsr_zifencei_zba_zbb_zbs_zalrsc --with-abi=lp64d && \
-#     make -j$(nproc) && \
-#     cd / && \
-#     rm -rf /tmp/riscv-gnu-toolchain
+#build custom tests fork 
+#pretty sure theres a bug in riscv-tests, D extension is included only in -mabi not -march
+RUN git clone --recurse-submodules -b rvb https://github.com/Purdue-SoCET/riscv-tests /tmp/riscv-tests && \
+    cd /tmp/riscv-tests && \
+    sed -i 's/imc_zicsr/imafdc_zicsr/g' benchmarks/Makefile && \
+    autoconf && \
+    ./configure --with-xlen=64 --prefix=$RISCV/target && \
+    make && \
+    make install && \
+    cd / && \
+    rm -rf /tmp/riscv-tests
 
-# #build custom tests fork 
-# #pretty sure theres a bug in riscv-tests, D extension is included only in -mabi not -march
-# RUN git clone --recurse-submodules -b rvb https://github.com/Purdue-SoCET/riscv-tests /tmp/riscv-tests && \
-#     cd /tmp/riscv-tests && \
-#     sed -i 's/imc_zicsr/imafdc_zicsr/g' benchmarks/Makefile && \
-#     autoconf && \
-#     ./configure --with-xlen=64 --prefix=$RISCV/target && \
-#     make && \
-#     make install && \
-#     cd / && \
-#     rm -rf /tmp/riscv-tests
+RUN find /opt/riscv -type f -executable -exec strip --strip-unneeded {} \; 2>/dev/null || true
 
-# RUN find /opt/riscv -type f -executable -exec strip --strip-unneeded {} \; 2>/dev/null || true
+FROM --platform=linux/amd64 frolvlad/alpine-glibc:latest
+#really small base image
 
-# FROM --platform=linux/amd64 frolvlad/alpine-glibc:latest
-# #really small base image
+RUN apk add --no-cache ca-certificates python3 py3-pip git make bash cmake g++ build-base perl autoconf gperf flex flex-dev bison wget help2man gmp mpfr mpc openssh-client zlib-dev
 
-# RUN apk add --no-cache ca-certificates python3 py3-pip git make bash cmake g++ build-base perl autoconf gperf flex flex-dev bison wget help2man gmp mpfr mpc openssh-client zlib-dev
+RUN pip3 install --break-system-packages fusesoc
+RUN git config --global credential.helper ''
+ENV GIT_TERMINAL_PROMPT=0
 
-# RUN pip3 install --break-system-packages fusesoc
-# RUN git config --global credential.helper ''
-# ENV GIT_TERMINAL_PROMPT=0
+COPY --from=builder /opt/riscv /opt/riscv
 
-# COPY --from=builder /opt/riscv /opt/riscv
+ENV PATH="/opt/riscv/bin:${PATH}"
+ENV RISCV="/opt/riscv" 
+ENV RISCV_PREFIX="riscv64-unknown-elf-"
 
-# ENV PATH="/opt/riscv/bin:${PATH}"
-# ENV RISCV="/opt/riscv" 
-# ENV RISCV_PREFIX="riscv64-unknown-elf-"
-
-# #verify toolchain and tests are working
-# RUN riscv64-unknown-elf-gcc --version
-# RUN ls -la /opt/riscv/target/share/riscv-tests/isa/
-# RUN echo "verifying custom riscv-tests" && \
-#     find /opt/riscv/target/share/riscv-tests/isa/ -name "*.dump" | head -5
-
-#for running riscvbusiness
-#docker run --rm -v "$PWD/RISCVBusiness":/workspace -v "$SSH_AUTH_SOCK":/ssh-agent -e SSH_AUTH_SOCK=/ssh-agent -w /workspace riscv-ci-tests-business sh -c 'export PATH="/opt/riscv/bin:$PATH"; mkdir -p /root/.ssh && ssh-keyscan github.com >>/root/.ssh/known_hosts 2>/dev/null; fusesoc library add digital-lib git@github.com:Purdue-SoCET/digital-lib.git || true; fusesoc library add bus-components git@github.com:Purdue-SoCET/bus-components.git || true; python3 scripts/config_core.py example.yml; make verilate; python3 run_tests_verilator.py'
+#verify toolchain and tests are working
+RUN riscv64-unknown-elf-gcc --version
+RUN ls -la /opt/riscv/target/share/riscv-tests/isa/
+RUN echo "verifying custom riscv-tests" && \
+    find /opt/riscv/target/share/riscv-tests/isa/ -name "*.dump" | head -5

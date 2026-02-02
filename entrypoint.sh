@@ -4,18 +4,23 @@ echo "Moving fusesoc libs to $GITHUB_WORKSPACE"
 mv /work/fusesoc.conf $GITHUB_WORKSPACE
 mv /work/fusesoc_libraries $GITHUB_WORKSPACE
 
+# going to overwrite riscv-tests for the sake of the testing
+# we don't want to rebuild the tests everytime we run a workflow
+rm -rf $GITHUB_WORKSPACE/riscv-tests
+mv /opt/riscv/target/share/riscv-tests $GITHUB_WORKSPACE
+
 set -e
 
 echo "SoCET RISC-V CI container"
 
-# if ! command -v riscv64-unknown-elf-gcc &> /dev/null; then
-#     echo "riscv64-unknown-elf-gcc not found"
-#     exit 1
-# fi
+if ! command -v riscv64-unknown-elf-gcc &> /dev/null; then
+    echo "riscv64-unknown-elf-gcc not found"
+    exit 1
+fi
 
-# export PATH="/opt/riscv/bin:${PATH}"
-# export RISCV="/opt/riscv"
-# export RISCV_PREFIX="riscv64-unknown-elf-"
+export PATH="/opt/riscv/bin:${PATH}"
+export RISCV="/opt/riscv"
+export RISCV_PREFIX="riscv64-unknown-elf-"
 
 echo "Starting Tests..."
 
