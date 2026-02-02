@@ -32,6 +32,7 @@ do
     if grep --color "FAILED" output.txt;
       echo "Target failed: $target"
       exit 1
+    fi
 
     echo "Target complete: $target"
   else
