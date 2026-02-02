@@ -49,10 +49,20 @@ RUN git clone --recurse-submodules -b rvb https://github.com/Purdue-SoCET/riscv-
 
 RUN find /opt/riscv -type f -executable -exec strip --strip-unneeded {} \; 2>/dev/null || true
 
-FROM --platform=linux/amd64 frolvlad/alpine-glibc:latest
-#really small base image
+# restarting from base image
+FROM ghcr.io/purdue-socet/socet-ci:main
 
-RUN apk add --no-cache ca-certificates python3 py3-pip git make bash cmake g++ build-base perl autoconf gperf flex flex-dev bison wget help2man gmp mpfr mpc openssh-client zlib-dev
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    git curl wget openssh-client \
+    autoconf automake libtool \
+    bison flex texinfo \
+    gawk perl python3 python3-pip \
+    libgmp-dev libmpfr-dev libmpc-dev \
+    zlib1g-dev libexpat1-dev \
+    xz-utils \
+    linux-headers-generic && \
+    rm -rf /var/lib/apt/lists/*
 
 RUN pip3 install --break-system-packages fusesoc
 RUN git config --global credential.helper ''
