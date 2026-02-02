@@ -24,6 +24,15 @@ RUN chmod +x /install_digital_libs.sh
 RUN --mount=type=secret,id=SSH_PRIVATE_KEY \
         /install_digital_libs.sh
 
+RUN pwd
+
+RUN ls -al
+
+RUN cat fusesoc.conf
+
+RUN ls fusesoc_libraries
+
+
 # ENV PATH="/opt/riscv/bin:${PATH}"
 # ENV RISCV="/opt/riscv"
 # ENV RISCV_PREFIX="riscv64-unknown-elf-"
