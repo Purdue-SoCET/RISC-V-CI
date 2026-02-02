@@ -16,13 +16,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN mkdir -p ~/.ssh && \
     ssh-keyscan github.com >>~/.ssh/known_hosts
 
-COPY install_digital_libs.sh /install_digital_libs.sh
-RUN chmod +x /install_digital_libs.sh
-
-# install digital libs using ssh key
-RUN --mount=type=secret,id=SSH_PRIVATE_KEY \
-        /install_digital_libs.sh
-
 ENV PATH="/opt/riscv/bin:${PATH}"
 ENV RISCV="/opt/riscv"
 ENV RISCV_PREFIX="riscv64-unknown-elf-"
@@ -68,3 +61,11 @@ RUN riscv64-unknown-elf-gcc --version
 RUN ls -la /opt/riscv/target/share/riscv-tests/isa/
 RUN echo "verifying custom riscv-tests" && \
     find /opt/riscv/target/share/riscv-tests/isa/ -name "*.dump" | head -5
+
+# Install the digital libraries
+COPY install_digital_libs.sh /install_digital_libs.sh
+RUN chmod +x /install_digital_libs.sh
+
+# install digital libs using ssh key
+RUN --mount=type=secret,id=SSH_PRIVATE_KEY \
+        /install_digital_libs.sh
