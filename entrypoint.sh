@@ -1,5 +1,9 @@
 #!/bin/bash
 
+echo "Moving fusesoc libs to $GITHUB_WORKSPACE"
+mv /work/fusesoc.conf $GITHUB_WORKSPACE
+mv /work/fusesoc_libraries $GITHUB_WORKSPACE
+
 set -e
 
 echo "SoCET RISC-V CI container"
