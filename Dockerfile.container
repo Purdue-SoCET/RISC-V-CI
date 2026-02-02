@@ -30,18 +30,18 @@ ENV RISCV_PREFIX="riscv64-unknown-elf-"
 
 RUN git clone --depth 1 https://github.com/riscv-collab/riscv-gnu-toolchain /tmp/riscv-gnu-toolchain && \
     cd /tmp/riscv-gnu-toolchain && \
-    ./configure --prefix=/opt/riscv --with-arch=rv64imafdc_zicsr_zifencei_zba_zbb_zbs_zalrsc --with-abi=lp64d && \
+    ./configure --prefix=/opt/riscv --with-arch=rv64gc_zicsr_zifencei_zba_zbb_zbc_zbs --with-abi=lp64d && \
     make -j$(nproc) && \
     cd / && \
     rm -rf /tmp/riscv-gnu-toolchain
 
 #build custom tests fork 
 #pretty sure theres a bug in riscv-tests, D extension is included only in -mabi not -march
+#TODO: do we need make install here?
 RUN git clone --recurse-submodules -b rvb https://github.com/Purdue-SoCET/riscv-tests /tmp/riscv-tests && \
     cd /tmp/riscv-tests && \
-    sed -i 's/imc_zicsr/imafdc_zicsr/g' benchmarks/Makefile && \
     autoconf && \
-    ./configure --with-xlen=64 --prefix=$RISCV/target && \
+    ./configure --with-xlen=32 --prefix=$RISCV/target && \
     make && \
     make install && \
     cd / && \
