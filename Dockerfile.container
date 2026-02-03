@@ -48,8 +48,9 @@ RUN git clone --depth 1 https://github.com/riscv-collab/riscv-gnu-toolchain /tmp
 RUN git clone --recurse-submodules -b rvb https://github.com/Purdue-SoCET/riscv-tests /tmp/riscv-tests && \
     cd /tmp/riscv-tests && \
     autoconf && \
-    ./configure --with-xlen 32 --prefix=$RISCV/target && \
+    ./configure --with-xlen=32 --prefix=/opt/riscv/target && \
     make && \
+    make install && \
     cd / && \
     rm -rf /tmp/riscv-tests
 
