@@ -6,9 +6,8 @@ on:
     tags: ['v*.*.*']
   pull_request:
     branches: [main]
-  schedule: # rebuild container every day at 7 UTC (3AM EST)
-    - cron: '0 7 * * *'
-
+  schedule: # rebuild container on the 4th day of the month at 6 UTC (2AM EST)
+    - cron: '0 6 4 * *'
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
