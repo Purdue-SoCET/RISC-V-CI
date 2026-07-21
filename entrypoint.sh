@@ -10,6 +10,9 @@ rm -rf $GITHUB_WORKSPACE/riscv-tests
 mv /opt/riscv/target/share/riscv-tests $GITHUB_WORKSPACE
 
 set -e
+# Without pipefail, `if cmd | tee ...` tests tee's status, not cmd's, so a
+# target that crashes outright is reported as a pass.
+set -o pipefail
 
 echo "SoCET RISC-V CI container"
 
@@ -26,9 +29,14 @@ echo "Starting Tests..."
 
 while IFS='' read -r target
 do
+  # a trailing newline in the targets input yields an empty final line
+  if [ -z "${target// }" ]; then
+    continue
+  fi
+
   echo "Running target: $target"
   # for run_tests.py runner, this will find failing outputs
-  if $target | tee >(grep --color "FAILED" > output.txt); then
+  if $target | tee output.txt; then
     if grep --color "FAILED" output.txt; then
       echo "Target failed: $target"
       exit 1
