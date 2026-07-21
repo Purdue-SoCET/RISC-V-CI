@@ -11,7 +11,7 @@ mv /opt/riscv/target/share/riscv-tests $GITHUB_WORKSPACE
 
 set -e
 # Without pipefail, `if cmd | tee ...` tests tee's status, not cmd's, so a
-# target that crashes outright is reported as a pass.
+# crash becomes a pass.
 set -o pipefail
 
 echo "SoCET RISC-V CI container"
